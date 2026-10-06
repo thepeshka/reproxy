@@ -1,0 +1,91 @@
+name: Build and Publish
+
+on:
+  push:
+    tags:
+      - '*'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  # ------------------------------------------------------------------
+  # 1. Build Docker images natively on native ARM/AMD runners
+  # ------------------------------------------------------------------
+  build:
+    strategy:
+      matrix:
+        include:
+          - arch: amd64
+            runner: ubuntu-24.04
+            platform: linux/amd64
+#          - arch: arm64
+#            runner: ubuntu-24.04-arm
+#            platform: linux/arm64
+    runs-on: ${{ matrix.runner }}
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Set up Docker Buildx
+        uses: docker/setup-buildx-action@v3
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Build and push (${{ matrix.arch }})
+        uses: docker/build-push-action@v5
+        with:
+          context: .
+          platforms: ${{ matrix.platform }}
+          push: true
+          # Tag with architecture suffix to avoid overwriting
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ steps.version.outputs.VERSION }}-${{ matrix.arch }}
+          # IMPORTANT: Disable provenance to allow imagetools to merge later
+          provenance: false
+          sbom: false
+          cache-from: type=gha
+          cache-to: type=gha,mode=max
+
+  # ------------------------------------------------------------------
+  # 2. Merge architecture-specific images into a single manifest
+  # ------------------------------------------------------------------
+  merge:
+    needs: build
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install regctl
+        uses: regclient/actions/regctl-installer@main
+
+      - name: regctl login
+        uses: regclient/actions/regctl-login@main
+
+      - name: Get version from tag
+        id: version
+        run: echo "VERSION=${GITHUB_REF#refs/tags/}" >> $GITHUB_OUTPUT
+
+      - name: Create and push multi-arch index
+        run: |
+          VERSION="${{ steps.version.outputs.VERSION }}"
+          BASE="ghcr.io/${{ github.repository }}"
+
+          regctl index create "${BASE}:${VERSION}" \
+#            --ref "${BASE}:${VERSION}-arm64" \
+            --ref "${BASE}:${VERSION}-amd64"
+          regctl index create "${BASE}:latest" \
+#            --ref "${BASE}:${VERSION}-arm64" \
+            --ref "${BASE}:${VERSION}-amd64"

@@ -1,0 +1,37 @@
+# === JetBrains / GoLand Specific ===
+.idea/
+*.iws
+*.iml
+out/
+/shelf/
+/workspace.xml
+/httpRequests/
+/dataSources/
+/dataSources.local.xml
+
+# === Go/Golang Specific ===
+# Binaries for programs and plugins
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+
+# Test binaries and coverage artifacts
+*.test
+*.out
+coverage.*
+*.coverprofile
+profile.cov
+
+# Dependency directories
+# (Uncomment if you do not want to commit vendored dependencies)
+# vendor/
+
+# Go workspace files
+go.work
+go.work.sum
+
+# === Environment variables ===
+.env
+.env.*
