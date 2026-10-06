@@ -7,5 +7,5 @@ RUN go mod download && \
 
 FROM alpine:3.19
 
-COPY --from=build /usr/bin/reporxy /usr/bin/reporxy
-ENTRYPOINT ["/usr/bin/reporxy"]
+COPY --from=build /usr/bin/reproxy /usr/bin/reproxy
+ENTRYPOINT ["/usr/bin/reproxy"]
