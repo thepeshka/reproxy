@@ -83,9 +83,10 @@ jobs:
           VERSION="${{ steps.version.outputs.VERSION }}"
           BASE="ghcr.io/${{ github.repository }}"
 
+          # When arm64 is re-enabled, add:
+          #   --ref "${BASE}:${VERSION}-arm64"
+
           regctl index create "${BASE}:${VERSION}" \
-#            --ref "${BASE}:${VERSION}-arm64" \
             --ref "${BASE}:${VERSION}-amd64"
           regctl index create "${BASE}:latest" \
-#            --ref "${BASE}:${VERSION}-arm64" \
             --ref "${BASE}:${VERSION}-amd64"
